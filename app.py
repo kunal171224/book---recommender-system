@@ -1,79 +1,37 @@
-from flask import Flask, render_template, request
+import streamlit as st
 import pickle
 import numpy as np
-
-app = Flask(__name__)
 
 popular_df = pickle.load(open('popular.pkl', 'rb'))
 pt = pickle.load(open('pt.pkl', 'rb'))
 books = pickle.load(open('books.pkl', 'rb'))
 similarity_scores = pickle.load(open('similarity_scores.pkl', 'rb'))
 
+st.title("Book Recommender System")
 
-@app.route('/')
-def index():
-    return render_template(
-        'index.html',
-        book_name=list(popular_df['Book-Title'].values),
-        author=list(popular_df['Book-Author'].values),
-        image=list(popular_df['Image-URL-M'].values),
-        votes=list(popular_df['num_ratings'].values),
-        rating=list(popular_df['avg_rating'].values)
-    )
+selected_book = st.selectbox(
+    "Type or select a book",
+    pt.index.values
+)
 
+if st.button('Recommend'):
 
-@app.route('/recommend')
-def recommend_ui():
-    return render_template('recommend.html')
+    index = np.where(pt.index == selected_book)[0][0]
 
+    similar_items = sorted(
+        list(enumerate(similarity_scores[index])),
+        key=lambda x: x[1],
+        reverse=True
+    )[1:6]
 
-@app.route('/recommend_books', methods=['post'])
-def recommend():
+    for i in similar_items:
 
-    user_input = request.form.get('user_input')
+        temp_df = books[books['Book-Title'] == pt.index[i[0]]]
 
-    try:
-        user_input = user_input.lower()
+        title = temp_df.drop_duplicates('Book-Title')['Book-Title'].values[0]
+        author = temp_df.drop_duplicates('Book-Title')['Book-Author'].values[0]
+        image = temp_df.drop_duplicates('Book-Title')['Image-URL-M'].values[0]
 
-        matches = [title for title in pt.index if user_input in title.lower()]
-
-        if len(matches) == 0:
-            return render_template(
-                'recommend.html',
-                error="Book not found!"
-            )
-
-        index = np.where(pt.index == matches[0])[0][0]
-
-        similar_items = sorted(
-            list(enumerate(similarity_scores[index])),
-            key=lambda x: x[1],
-            reverse=True
-        )[1:6]
-
-        data = []
-
-        for i in similar_items:
-            item = []
-
-            temp_df = books[books['Book-Title'] == pt.index[i[0]]]
-
-            item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Title'].values))
-            item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Author'].values))
-            item.extend(list(temp_df.drop_duplicates('Book-Title')['Image-URL-M'].values))
-
-            data.append(item)
-
-        return render_template('recommend.html', data=data)
-
-    except Exception as e:
-        print(f"Error: {e}")
-
-        return render_template(
-            'recommend.html',
-            error="Something went wrong!"
-        )
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
+        st.text(title)
+        st.text(author)
+        st.image(image)
