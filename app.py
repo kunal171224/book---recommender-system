@@ -2,7 +2,7 @@ from flask import Flask, render_template, request
 import pickle
 import numpy as np
 
-# Files load ho rahi hain
+# Files loading
 popular_df = pickle.load(open('popular.pkl', 'rb'))
 pt = pickle.load(open('pt.pkl', 'rb'))
 books = pickle.load(open('books.pkl', 'rb'))
@@ -30,8 +30,8 @@ def recommend_ui():
 @app.route('/recommend_books', methods=['post'])
 def recommend():
     user_input = request.form.get('user_input')
+
     try:
-        # Index nikalna
         index = np.where(pt.index == user_input)[0][0]
         similar_items = sorted(list(enumerate(similarity_scores[index])), key=lambda x: x[1], reverse=True)[1:6]
 
@@ -42,14 +42,13 @@ def recommend():
             item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Title'].values))
             item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Author'].values))
             item.extend(list(temp_df.drop_duplicates('Book-Title')['Image-URL-M'].values))
-
             data.append(item)
 
         return render_template('recommend.html', data=data)
 
     except Exception as e:
-        # Agar book nahi milti toh page crash nahi hoga
-        return render_template('recommend.html', error_message="Book not found! Please check the spelling.")
+        print(f"Error: {e}")
+        return render_template('recommend.html', error_message="Book not found!")
 
 
 if __name__ == '__main__':
