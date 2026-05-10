@@ -48,7 +48,7 @@ def recommend():
 
     except Exception as e:
         print(f"Error: {e}")
-        return render_template('recommend.html', error_message="Book not found!")
+        return render_template('recommend.html', error="Book not found!")
 
 
 if __name__ == '__main__':
